@@ -1,7 +1,16 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using PicasYFamas.Data;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+
+
+//registramos el dbcontext
+builder.Services.AddDbContext<GameDbContext>(options =>
+    options.UseSqlite("Data Source=picasyfamas.db")
+);
+
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -10,6 +19,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
 
 var app = builder.Build();
 
