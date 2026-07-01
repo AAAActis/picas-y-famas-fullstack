@@ -1,45 +1,24 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using PicasYFamas.Data;
-using PicasYFamas.Services;
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddDbContext<GameDbContext>(options =>
-    options.UseSqlite("Data Source=picasyfamas.db"));
-
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt_Key"]!)),
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi; // Namespace actualizado
+using Microsoft.OpenApi; 
 using System.Text;
+using PicasYFamas.Data;      // Del PR de tu compañero
+using PicasYFamas.Services;  // Del PR de tu compañero
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Controladores
 builder.Services.AddControllers();
 
-// 2. Base de Datos (SQLite)
-// builder.Services.AddDbContext<GameDbContext>(options =>
-//     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+// 2. Base de Datos (SQLite) - Del PR de tu compañero
+builder.Services.AddDbContext<GameDbContext>(options =>
+    options.UseSqlite("Data Source=picasyfamas.db"));
 
-// 3. CORS
+// Inyección del AuthService - Del PR de tu compañero
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// 3. CORS - Tuyo
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -50,8 +29,8 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 4. Autenticación JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "ClaveSuperSecretaParaDesarrollo12345!";
+// 4. Autenticación JWT - Combinado
+var jwtKey = builder.Configuration["Jwt_Key"] ?? builder.Configuration["Jwt:Key"] ?? "ClaveSuperSecretaParaDesarrollo12345!";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -66,7 +45,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 5. Swagger con soporte JWT (Sintaxis para Swashbuckle v10+)
+// 5. Swagger con soporte JWT (Sintaxis para Swashbuckle v10+) - Tuyo
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -86,7 +65,7 @@ builder.Services.AddSwaggerGen(c =>
     // Delegado requerido por la v10+
     c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
@@ -99,12 +78,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-app.Run();
 app.UseHttpsRedirection();
 
+// 6. Usar CORS antes de la autenticación - Tuyo
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
