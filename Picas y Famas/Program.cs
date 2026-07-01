@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi; // Namespace actualizado
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,31 +40,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 5. Swagger con soporte JWT
+// 5. Swagger con soporte JWT (Sintaxis para Swashbuckle v10+)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "NumberGuessGameApi", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "NumberGuessGameApi", Version = "v1" });
     
-    var securityScheme = new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    var securityScheme = new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Description = "Ingresá el token JWT en este formato: Bearer {token}",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        Reference = new Microsoft.OpenApi.Models.OpenApiReference
-        {
-            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-            Id = "Bearer"
-        }
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
     };
 
     c.AddSecurityDefinition("Bearer", securityScheme);
     
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    // Delegado requerido por la v10+
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        { securityScheme, Array.Empty<string>() }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = Array.Empty<string>()
     });
 });
 
