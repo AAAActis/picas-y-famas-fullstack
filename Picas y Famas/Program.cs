@@ -60,7 +60,7 @@ builder.Services.AddSwaggerGen(c =>
     // Delegado requerido por la v10+
     c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = Array.Empty<string>()
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
     });
 });
 
