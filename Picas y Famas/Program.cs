@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using System.Text;
 using PicasYFamas.Data;      // Del PR de tu compañero
 using PicasYFamas.Services;  // Del PR de tu compañero
+using GameCore;            // Del PR de tu compañero
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,7 @@ builder.Services.AddDbContext<GameDbContext>(options =>
 
 // Inyección del AuthService - Del PR de tu compañero
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IGameService, GameService>();
 
 // 3. CORS - Tuyo
 builder.Services.AddCors(options =>
@@ -87,5 +89,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+var r = Evaluator.ValidateAttempt("1234", "1234");
+var props = r.GetType().GetProperties().Select(p => p.Name);
+Console.WriteLine(string.Join(", ", props));
 
 app.Run();
