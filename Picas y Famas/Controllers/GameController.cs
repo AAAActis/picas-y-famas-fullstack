@@ -6,6 +6,7 @@ using PicasYFamas.Data;
 using PicasYFamas.DateTransferObjects;
 using PicasYFamas.Models;
 using PicasYFamas.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PicasYFamas.Controllers
 {
@@ -15,6 +16,36 @@ namespace PicasYFamas.Controllers
     public class GameController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IGameService _gameService;
+        private readonly GameDbContext _context;
+
+        public GameController(IAuthService authService, IGameService gameService, GameDbContext context)
+        {
+            _authService = authService;
+            _gameService = gameService;
+            _context = context;
+        }
+
+        [HttpPost("guess")]
+        public async Task<IActionResult> Guess([FromBody] GuessNumberRequest request)
+        {
+            try
+            {
+                var playerIdClaim = User.FindFirst("playerId")?.Value;
+                if (playerIdClaim == null) return Unauthorized();
+
+                var playerId = Guid.Parse(playerIdClaim);
+                var response = await _gameService.GuessAsync(request, playerId);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         private readonly GameDbContext _context;
 
         public GameController(IAuthService authService, GameDbContext context)
