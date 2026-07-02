@@ -77,8 +77,7 @@ export function GameScreen({ onGoToDashboard }: { onGoToDashboard: () => void })
         setHistory((prev) => [attempt, ...prev])
         setDigits(['', '', '', ''])
 
-        // Validación de victoria según consigna
-        if (data.message && data.message.includes('Felicidades')) {
+        if (data.isFinished) {
           setWon(true)
         }
       } else {
@@ -141,7 +140,7 @@ export function GameScreen({ onGoToDashboard }: { onGoToDashboard: () => void })
             disabled={isLoading}
             className="mt-5 w-full text-center text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50"
           >
-            ./reiniciar --new-secret (Nueva Partida)
+            ./nueva-partida
           </button>
         </div>
       </TerminalWindow>
