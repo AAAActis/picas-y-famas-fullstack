@@ -65,7 +65,7 @@ export const guessNumber = async (gameId: number, attemptedNumber: string) => {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ gameId, attemptedNumber: Number(attemptedNumber) })
+    body: JSON.stringify({ gameId, attemptedNumber })
   });
   
   return { ok: response.ok, data: await response.json() };
