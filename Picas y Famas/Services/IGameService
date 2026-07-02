@@ -4,6 +4,6 @@ namespace PicasYFamas.Services
 {
     public interface IGameService
     {
-        Task<GuessNumberResponse> GuessAsync(GuessNumberRequest request, Guid playerId);
+        Task<StartGameResponse> StartGameAsync(Guid playerId);
     }
 }

@@ -1,5 +1,5 @@
 // frontend/lib/api.ts
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/game/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5109/api/game/v1';
 
 // Tipos de datos para el registro
 export type RegisterData = {
@@ -65,7 +65,7 @@ export const guessNumber = async (gameId: number, attemptedNumber: string) => {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ gameId, attemptedNumber: Number(attemptedNumber) })
+    body: JSON.stringify({ gameId, attemptedNumber })
   });
   
   return { ok: response.ok, data: await response.json() };

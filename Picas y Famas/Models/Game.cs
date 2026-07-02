@@ -12,8 +12,8 @@ namespace PicasYFamas.Models
         public int Id;
         public Guid PlayerId {get; set;}
         [Required, MaxLength(10)]
-        public string SecretNumber { get; set; } = string.Empty;    
-        public bool IsFinished { get; set; } = false;   
+        public string SecretNumber { get; set; } = string.Empty;
+        public bool IsFinished { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         //estas son propiedades de navegacion

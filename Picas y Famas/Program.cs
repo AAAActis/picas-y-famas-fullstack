@@ -1,24 +1,27 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi; 
 using System.Text;
-using PicasYFamas.Data;      // Del PR de tu compañero
-using PicasYFamas.Services;  // Del PR de tu compañero
+using PicasYFamas.Data;
+using PicasYFamas.Services;
+using PicasYFamas.Models; 
+using Microsoft.OpenApi;
+//using ESCMB.GameCore; // Descomentá esto si lo necesitan acá
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Controladores
 builder.Services.AddControllers();
 
-// 2. Base de Datos (SQLite) - Del PR de tu compañero
+// 2. Base de Datos (SQLite)
 builder.Services.AddDbContext<GameDbContext>(options =>
     options.UseSqlite("Data Source=picasyfamas.db"));
 
-// Inyección del AuthService - Del PR de tu compañero
+// Inyección de Servicios
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IGameService, GameService>(); 
 
-// 3. CORS - Tuyo
+// 3. CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -29,7 +32,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 4. Autenticación JWT - Combinado
+// 4. Autenticación JWT
 var jwtKey = builder.Configuration["Jwt_Key"] ?? builder.Configuration["Jwt:Key"] ?? "ClaveSuperSecretaParaDesarrollo12345!";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -45,24 +48,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 5. Swagger con soporte JWT (Sintaxis para Swashbuckle v10+) - Tuyo
+// 5. Swagger con soporte JWT (Sintaxis exclusiva para .NET 10 / Swashbuckle v10+)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "NumberGuessGameApi", Version = "v1" });
-    
-    var securityScheme = new OpenApiSecurityScheme
+
+    // Definición del esquema
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Description = "Ingresá el token JWT en este formato: Bearer {token}",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    };
+        Type = SecuritySchemeType.Http, // Para Bearer en las versiones nuevas se recomienda Http en lugar de ApiKey
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
 
-    c.AddSecurityDefinition("Bearer", securityScheme);
-    
-    // Delegado requerido por la v10+
+    // Requisito de seguridad (Usando el delegado y OpenApiSecuritySchemeReference)
     c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
@@ -80,7 +83,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 6. Usar CORS antes de la autenticación - Tuyo
+// IMPORTANTE: El orden del pipeline (CORS -> Auth -> Controllers)
 app.UseCors("AllowAll");
 
 app.UseAuthentication();

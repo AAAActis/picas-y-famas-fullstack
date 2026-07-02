@@ -13,7 +13,7 @@ namespace PicasYFamas.Models
         public int Famas { get; set; }
         public int Picas { get; set; }
         [MaxLength(255)]
-        public string Message { get; set; } = string.Empty;      
+        public string Message { get; set; } = string.Empty;
         public DateTime AttemptedAt { get; set; } = DateTime.UtcNow;
 
         //navegacion

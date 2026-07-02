@@ -11,7 +11,7 @@ using PicasYFamas.Data;
 namespace Picas_y_Famas.Migrations
 {
     [DbContext(typeof(GameDbContext))]
-    [Migration("20260630230929_InitialCreate")]
+    [Migration("20260702174535_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
