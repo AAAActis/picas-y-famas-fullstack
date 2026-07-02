@@ -41,8 +41,7 @@ namespace PicasYFamas.Services
             await _context.SaveChangesAsync();
             return GenerateJwtToken(player);
         }
-
-        public async Task<string> LoginAsync(LoginRequest request)
+public async Task<string> LoginAsync(LoginRequest request)
         {
             var player = await _context.Players
                 .FirstOrDefaultAsync(p => p.Email == request.Email);
