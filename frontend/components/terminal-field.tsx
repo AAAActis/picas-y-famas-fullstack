@@ -14,7 +14,6 @@ type TerminalFieldProps = {
   min?: number
   max?: number
   className?: string
-  disabled?: boolean // <-- Agregado para que TS no chille
 }
 
 export function TerminalField({
@@ -28,18 +27,13 @@ export function TerminalField({
   min,
   max,
   className,
-  disabled, // <-- Recibimos la prop
 }: TerminalFieldProps) {
   const id = useId()
-
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <label
         htmlFor={id}
-        className={cn(
-          "flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground",
-          disabled && "opacity-50"
-        )}
+        className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground"
       >
         <span className="text-primary">&gt;</span>
         {label}
@@ -55,8 +49,7 @@ export function TerminalField({
         required={required}
         min={min}
         max={max}
-        disabled={disabled} // <-- Se la pasamos al input nativo
-        className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground caret-primary outline-none transition focus:border-primary focus:box-glow placeholder:text-muted-foreground/60 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground caret-primary outline-none transition focus:border-primary focus:box-glow placeholder:text-muted-foreground/60"
       />
     </div>
   )
