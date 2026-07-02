@@ -1,91 +1,48 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi; 
-using System.Text;
-using PicasYFamas.Data;      // Del PR de tu compañero
-using PicasYFamas.Services;  // Del PR de tu compañero
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.HttpResults;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args);
 
-// 1. Controladores
-builder.Services.AddControllers();
-
-// 2. Base de Datos (SQLite) - Del PR de tu compañero
-builder.Services.AddDbContext<GameDbContext>(options =>
-    options.UseSqlite("Data Source=picasyfamas.db"));
-
-// Inyección del AuthService - Del PR de tu compañero
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-// 3. CORS - Tuyo
-builder.Services.AddCors(options =>
+builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
 });
 
-// 4. Autenticación JWT - Combinado
-var jwtKey = builder.Configuration["Jwt_Key"] ?? builder.Configuration["Jwt:Key"] ?? "ClaveSuperSecretaParaDesarrollo12345!";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = true;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ValidateIssuer = false,
-            ValidateAudience = false
-        };
-    });
-
-// 5. Swagger con soporte JWT (Sintaxis para Swashbuckle v10+) - Tuyo
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "NumberGuessGameApi", Version = "v1" });
-    
-    var securityScheme = new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Description = "Ingresá el token JWT en este formato: Bearer {token}",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    };
-
-    c.AddSecurityDefinition("Bearer", securityScheme);
-    
-    // Delegado requerido por la v10+
-    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-    });
-});
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configuración del pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+Todo[] sampleTodos =
+[
+    new(1, "Walk the dog"),
+    new(2, "Do the dishes", DateOnly.FromDateTime(DateTime.Now)),
+    new(3, "Do the laundry", DateOnly.FromDateTime(DateTime.Now.AddDays(1))),
+    new(4, "Clean the bathroom"),
+    new(5, "Clean the car", DateOnly.FromDateTime(DateTime.Now.AddDays(2)))
+];
 
-// 6. Usar CORS antes de la autenticación - Tuyo
-app.UseCors("AllowAll");
+var todosApi = app.MapGroup("/todos");
+todosApi.MapGet("/", () => sampleTodos)
+        .WithName("GetTodos");
 
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
+todosApi.MapGet("/{id}", Results<Ok<Todo>, NotFound> (int id) =>
+    sampleTodos.FirstOrDefault(a => a.Id == id) is { } todo
+        ? TypedResults.Ok(todo)
+        : TypedResults.NotFound())
+    .WithName("GetTodoById");
 
 app.Run();
+
+public record Todo(int Id, string? Title, DateOnly? DueBy = null, bool IsComplete = false);
+
+[JsonSerializable(typeof(Todo[]))]
+internal partial class AppJsonSerializerContext : JsonSerializerContext
+{
+
+}
