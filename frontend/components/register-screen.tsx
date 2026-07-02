@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { TerminalWindow } from '@/components/terminal-window'
 import { TerminalField } from '@/components/terminal-field'
 import { Button } from '@/components/ui/button'
+import { registerUser, RegisterData } from '@/lib/api'
 
 type RegisterScreenProps = {
   onRegister: () => void
@@ -18,13 +19,35 @@ export function RegisterScreen({ onRegister, onGoToLogin }: RegisterScreenProps)
     email: '',
     password: '',
   })
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const set = (key: keyof typeof form) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onRegister()
+    setError('')
+    setIsLoading(true)
+
+    try {
+      const userData: RegisterData = {
+        ...form,
+        age: Number(form.age)
+      }
+
+      const response = await registerUser(userData)
+      
+      if (response.ok) {
+        onRegister()
+      } else {
+        setError(response.data?.message || 'Error: No se pudo registrar el usuario.')
+      }
+    } catch (err) {
+      setError('Error crítico: Sin conexión al servidor.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -48,6 +71,7 @@ export function RegisterScreen({ onRegister, onGoToLogin }: RegisterScreenProps)
             placeholder="Neo"
             autoComplete="given-name"
             required
+            disabled={isLoading}
           />
           <TerminalField
             label="lastname"
@@ -56,6 +80,7 @@ export function RegisterScreen({ onRegister, onGoToLogin }: RegisterScreenProps)
             placeholder="Anderson"
             autoComplete="family-name"
             required
+            disabled={isLoading}
           />
         </div>
 
@@ -69,6 +94,7 @@ export function RegisterScreen({ onRegister, onGoToLogin }: RegisterScreenProps)
             min={1}
             max={120}
             required
+            disabled={isLoading}
           />
         </div>
 
@@ -81,6 +107,7 @@ export function RegisterScreen({ onRegister, onGoToLogin }: RegisterScreenProps)
             placeholder="operador@matrix.io"
             autoComplete="email"
             required
+            disabled={isLoading}
           />
         </div>
 
@@ -93,14 +120,22 @@ export function RegisterScreen({ onRegister, onGoToLogin }: RegisterScreenProps)
             placeholder="••••••••"
             autoComplete="new-password"
             required
+            disabled={isLoading}
           />
         </div>
 
+        {error && (
+          <p className="mt-4 text-center text-xs text-red-500 font-bold text-glow">
+            &gt; {error}
+          </p>
+        )}
+
         <Button
           type="submit"
-          className="mt-7 w-full bg-primary font-bold tracking-widest text-primary-foreground hover:bg-primary/90"
+          disabled={isLoading}
+          className="mt-7 w-full bg-primary font-bold tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          &gt; INICIAR_REGISTRO
+          {isLoading ? '> PROCESANDO...' : '> INICIAR_REGISTRO'}
         </Button>
 
         <p className="mt-5 text-center text-xs text-muted-foreground">
@@ -108,7 +143,8 @@ export function RegisterScreen({ onRegister, onGoToLogin }: RegisterScreenProps)
           <button
             type="button"
             onClick={onGoToLogin}
-            className="text-primary underline-offset-4 hover:underline"
+            disabled={isLoading}
+            className="text-primary underline-offset-4 hover:underline disabled:opacity-50"
           >
             ./login
           </button>

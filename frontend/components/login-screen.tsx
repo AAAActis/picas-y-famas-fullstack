@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { TerminalWindow } from '@/components/terminal-window'
 import { TerminalField } from '@/components/terminal-field'
 import { Button } from '@/components/ui/button'
+import { loginUser } from '@/lib/api'
 
 type LoginScreenProps = {
   onLogin: () => void
@@ -13,10 +14,27 @@ type LoginScreenProps = {
 export function LoginScreen({ onLogin, onGoToRegister }: LoginScreenProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onLogin()
+    setError('')
+    setIsLoading(true)
+
+    try {
+      const response = await loginUser(email, password)
+      
+      if (response.ok) {
+        onLogin() // El redireccionamiento lo maneja el componente padre
+      } else {
+        setError(response.data?.message || 'Error: Credenciales inválidas.')
+      }
+    } catch (err) {
+      setError('Error crítico: Sin conexión al servidor.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -41,6 +59,7 @@ export function LoginScreen({ onLogin, onGoToRegister }: LoginScreenProps) {
             placeholder="operador@matrix.io"
             autoComplete="email"
             required
+            disabled={isLoading}
           />
           <TerminalField
             label="password"
@@ -50,14 +69,22 @@ export function LoginScreen({ onLogin, onGoToRegister }: LoginScreenProps) {
             placeholder="••••••••"
             autoComplete="current-password"
             required
+            disabled={isLoading}
           />
         </div>
 
+        {error && (
+          <p className="mt-4 text-center text-xs text-red-500 font-bold text-glow">
+            &gt; {error}
+          </p>
+        )}
+
         <Button
           type="submit"
-          className="mt-7 w-full bg-primary font-bold tracking-widest text-primary-foreground hover:bg-primary/90"
+          disabled={isLoading}
+          className="mt-7 w-full bg-primary font-bold tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          &gt; CONECTAR
+          {isLoading ? '> CONECTANDO...' : '> CONECTAR'}
         </Button>
 
         <p className="mt-5 text-center text-xs text-muted-foreground">
@@ -65,7 +92,8 @@ export function LoginScreen({ onLogin, onGoToRegister }: LoginScreenProps) {
           <button
             type="button"
             onClick={onGoToRegister}
-            className="text-primary underline-offset-4 hover:underline"
+            disabled={isLoading}
+            className="text-primary underline-offset-4 hover:underline disabled:opacity-50"
           >
             ./registro
           </button>

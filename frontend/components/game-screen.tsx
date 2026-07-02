@@ -5,79 +5,124 @@ import { TerminalWindow } from '@/components/terminal-window'
 import { DigitInput } from '@/components/digit-input'
 import { VictoryModal } from '@/components/victory-modal'
 import { Button } from '@/components/ui/button'
-import {
-  type Attempt,
-  buildMessage,
-  evaluateGuess,
-  generateSecret,
-} from '@/lib/game-logic'
+import { startGame, guessNumber } from '@/lib/api'
+
+export type Attempt = {
+  n: number
+  guess: string
+  famas: number
+  picas: number
+  message: string
+}
 
 export function GameScreen({ onGoToDashboard }: { onGoToDashboard: () => void }) {
-  const [secret, setSecret] = useState(generateSecret)
+  const [gameId, setGameId] = useState<number | null>(null)
   const [digits, setDigits] = useState(['', '', '', ''])
   const [history, setHistory] = useState<Attempt[]>([])
   const [error, setError] = useState('')
   const [won, setWon] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const guess = digits.join('')
   const isComplete = guess.length === 4
 
-  const submit = (e: React.FormEvent) => {
+  const startNewGame = async () => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const res = await startGame()
+      if (res.ok) {
+        // Asegurate de que la key coincide con lo que devuelve tu backend (gameid o gameId)
+        setGameId(res.data.gameid || res.data.gameId)
+        setHistory([])
+        setDigits(['', '', '', ''])
+        setWon(false)
+      } else {
+        setError(res.data?.message || 'Error al iniciar la partida.')
+      }
+    } catch (err) {
+      setError('Error de conexión con el servidor.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!gameId) {
+      setError('vector inactivo // inicia una nueva partida primero')
+      return
+    }
     if (!isComplete) {
       setError('vector incompleto // ingresa 4 dígitos')
       return
     }
+    
     setError('')
-    const { famas, picas } = evaluateGuess(secret, guess)
-    const attempt: Attempt = {
-      n: history.length + 1,
-      guess,
-      famas,
-      picas,
-      message: buildMessage(famas, picas),
-    }
-    setHistory((prev) => [attempt, ...prev])
-    setDigits(['', '', '', ''])
-    if (famas === 4) setWon(true)
-  }
+    setIsLoading(true)
 
-  const reset = () => {
-    setSecret(generateSecret())
-    setDigits(['', '', '', ''])
-    setHistory([])
-    setError('')
-    setWon(false)
+    try {
+      const res = await guessNumber(gameId, guess)
+      if (res.ok) {
+        const data = res.data
+        const attempt: Attempt = {
+          n: history.length + 1,
+          guess,
+          famas: data.famas,
+          picas: data.picas,
+          message: data.message,
+        }
+        
+        setHistory((prev) => [attempt, ...prev])
+        setDigits(['', '', '', ''])
+
+        // Validación de victoria según consigna
+        if (data.message && data.message.includes('Felicidades')) {
+          setWon(true)
+        }
+      } else {
+        setError(res.data?.message || 'Error al procesar el intento.')
+      }
+    } catch (err) {
+      setError('Error de conexión con el servidor.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       {/* Input panel */}
       <TerminalWindow title="~/picas-y-famas/consola.exe" scanlines className="self-start">
-        <form onSubmit={submit} className="p-6 sm:p-8">
+        <div className="p-6 sm:p-8">
           <header className="mb-6">
             <p className="text-xs text-muted-foreground">$ ./adivina --len 4</p>
             <h1 className="mt-2 text-2xl font-bold text-primary text-glow">
               DESCIFRA_EL_CÓDIGO<span className="cursor-blink" />
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">
-              intento #{history.length + 1} // encuentra los 4 dígitos secretos
+              {gameId 
+                ? `intento #${history.length + 1} // encuentra los 4 dígitos secretos`
+                : 'inicia una nueva partida para jugar'}
             </p>
           </header>
 
-          <DigitInput digits={digits} onChange={setDigits} disabled={won} />
-
-          {error && (
-            <p className="mt-4 text-center text-xs text-destructive">! {error}</p>
-          )}
-
-          <Button
-            type="submit"
-            disabled={won}
-            className="mt-6 w-full bg-primary font-bold tracking-widest text-primary-foreground hover:bg-primary/90"
-          >
-            &gt; ENVIAR_INTENTO
-          </Button>
+          <form onSubmit={submit}>
+            <DigitInput digits={digits} onChange={setDigits} disabled={won || !gameId || isLoading} />
+            
+            {error && (
+              <p className="mt-4 text-center text-xs text-destructive font-bold">! {error}</p>
+            )}
+            
+            <Button
+              type="submit"
+              disabled={won || !gameId || isLoading}
+              className="mt-6 w-full bg-primary font-bold tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              &gt; {isLoading ? 'PROCESANDO...' : 'ENVIAR_INTENTO'}
+            </Button>
+          </form>
 
           <div className="mt-6 grid grid-cols-2 gap-3 text-center text-xs">
             <div className="rounded-md border border-border bg-secondary/40 px-3 py-2">
@@ -92,12 +137,13 @@ export function GameScreen({ onGoToDashboard }: { onGoToDashboard: () => void })
 
           <button
             type="button"
-            onClick={reset}
-            className="mt-5 w-full text-center text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+            onClick={startNewGame}
+            disabled={isLoading}
+            className="mt-5 w-full text-center text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50"
           >
-            ./reiniciar --new-secret
+            ./reiniciar --new-secret (Nueva Partida)
           </button>
-        </form>
+        </div>
       </TerminalWindow>
 
       {/* History panel */}
@@ -109,7 +155,7 @@ export function GameScreen({ onGoToDashboard }: { onGoToDashboard: () => void })
             </p>
             <span className="text-xs text-muted-foreground">{history.length} entradas</span>
           </div>
-
+          
           <div className="overflow-hidden rounded-md border border-border">
             <table className="w-full text-sm">
               <thead>
@@ -125,7 +171,9 @@ export function GameScreen({ onGoToDashboard }: { onGoToDashboard: () => void })
                 {history.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-3 py-10 text-center text-xs text-muted-foreground">
-                      <span className="cursor-blink">esperando primer intento</span>
+                      <span className="cursor-blink">
+                        {gameId ? 'esperando primer intento' : 'inicia una partida'}
+                      </span>
                     </td>
                   </tr>
                 ) : (
@@ -155,8 +203,8 @@ export function GameScreen({ onGoToDashboard }: { onGoToDashboard: () => void })
       <VictoryModal
         open={won}
         attempts={history.length}
-        secret={secret}
-        onPlayAgain={reset}
+        secret={history.length > 0 ? history[0].guess : '0000'}
+        onPlayAgain={startNewGame}
         onGoToDashboard={onGoToDashboard}
       />
     </div>
