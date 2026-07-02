@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens; // Corregido para que funcione OpenApiInfo
+using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using PicasYFamas.Data;
 using PicasYFamas.Services;
-using Microsoft.OpenApi; // Corregido para que funcione OpenApiInfo
+using PicasYFamas.Models; 
+using Microsoft.OpenApi;
 //using ESCMB.GameCore; // Descomentá esto si lo necesitan acá
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,7 +19,7 @@ builder.Services.AddDbContext<GameDbContext>(options =>
 
 // Inyección de Servicios
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IGameService, GameService>(); // Restaurado del código de tu compañero
+builder.Services.AddScoped<IGameService, GameService>(); 
 
 // 3. CORS
 builder.Services.AddCors(options =>
@@ -47,23 +48,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 5. Swagger con soporte JWT
+// 5. Swagger con soporte JWT (Sintaxis exclusiva para .NET 10 / Swashbuckle v10+)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "NumberGuessGameApi", Version = "v1" });
 
-    var securityScheme = new OpenApiSecurityScheme
+    // Definición del esquema
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Description = "Ingresá el token JWT en este formato: Bearer {token}",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    };
+        Type = SecuritySchemeType.Http, // Para Bearer en las versiones nuevas se recomienda Http en lugar de ApiKey
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
 
-    c.AddSecurityDefinition("Bearer", securityScheme);
-
+    // Requisito de seguridad (Usando el delegado y OpenApiSecuritySchemeReference)
     c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []

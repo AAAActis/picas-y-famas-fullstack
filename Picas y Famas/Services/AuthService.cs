@@ -37,14 +37,18 @@ namespace PicasYFamas.Services
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 CreatedAt = DateTime.Now
             };
+            
             _context.Players.Add(player);
             await _context.SaveChangesAsync();
+            
             return GenerateJwtToken(player);
         }
-public async Task<string> LoginAsync(LoginRequest request)
+
+        public async Task<string> LoginAsync(LoginRequest request)
         {
             var player = await _context.Players
                 .FirstOrDefaultAsync(p => p.Email == request.Email);
+                
             if (player == null)
             {
                 throw new Exception("Credenciales inválidas.");
@@ -60,8 +64,10 @@ public async Task<string> LoginAsync(LoginRequest request)
 
         private string GenerateJwtToken(Player player)
         {
-             var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_configuration["Jwt_Key"]!));
+            // Corrección: fallback seguro para evitar que reciba null y explote
+            var jwtKey = _configuration["Jwt_Key"] ?? _configuration["Jwt:Key"] ?? "ClaveSuperSecretaParaDesarrollo12345!";
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]

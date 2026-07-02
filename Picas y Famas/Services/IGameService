@@ -1,0 +1,9 @@
+using PicasYFamas.DateTransferObjects;
+
+namespace PicasYFamas.Services
+{
+    public interface IGameService
+    {
+        Task<StartGameResponse> StartGameAsync(Guid playerId);
+    }
+}
